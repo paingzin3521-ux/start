@@ -3,30 +3,26 @@
 
 ---
 
-## ⚡ One Command Install (Copy Paste ရုံတည်း)
-
-### Termux မသွင်းရသေးသူ — F-Droid ကနေ Termux ရယူပါ
-```
-https://f-droid.org/en/packages/com.termux/
-```
-
-### Termux ဖွင့်ပြီး အောက်ပါ command တစ်ကြောင်းတည်း copy ကူးထည့်ပါ ▼
+## ⚡ Install Command (တစ်ကြောင်းတည်း Copy Paste လုပ်ပါ)
 
 ```bash
-pkg update -y && pkg upgrade -y && pkg install python curl nmap net-tools iproute2 -y && pip install requests pycryptodome urllib3 -q && mkdir -p ~/.skyby && curl -sL https://raw.githubusercontent.com/paingzin3521-ux/start/start/skyby.py -o ~/.skyby/skyby.py && echo -e '#!/data/data/com.termux/files/usr/bin/bash\npython3 ~/.skyby/skyby.py' > $PREFIX/bin/skyby && chmod +x $PREFIX/bin/skyby && echo "" && echo "✓ Done! Type: skyby"
+pkg update -y && pkg install python git -y && pip install pycryptodome requests urllib3 -q && git clone -b start https://github.com/paingzin3521-ux/start skyby && echo "alias skyby='cd ~/skyby && python run.py'" >> ~/.bashrc && source ~/.bashrc
 ```
 
-### ✅ Install ပြီးရင် Run နည်း
+---
+
+## ✅ Install ပြီးရင် Run နည်း
+
 ```bash
 skyby
 ```
 
 ---
 
-## 🔄 Update / Reinstall
+## 🔄 Update နည်း
 
 ```bash
-curl -sL https://raw.githubusercontent.com/paingzin3521-ux/start/start/skyby.py -o ~/.skyby/skyby.py && echo "✓ Updated!"
+cd ~/skyby && git pull
 ```
 
 ---
