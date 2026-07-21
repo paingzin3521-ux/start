@@ -1,64 +1,70 @@
-# SKYBY — WiFi Scan Bypass Tool
-
-```
-   _____   _  __ __     __   ____   __     __
-  / ____| | |/ / \ \   / /  |  _ \  \ \   / /
- | (___   | ' /   \ \_/ /   | |_) |  \ \_/ /
-  \___ \  |  <     \   /    |  _ <    \   /
-  ____) | | . \     | |     | |_) |    | |
- |_____/  |_|\_\    |_|     |____/     |_|
-```
-
-**Telegram:** [@paing_3521](https://t.me/paing_3521)
+# 🌐 SKYBY TOOL — Wifi Scan Bypass
+> Telegram: [@paing_3521](https://t.me/paing_3521)
 
 ---
 
-## Termux Setup
+## 📱 Termux Installation (အသစ်သုံးသူများ)
 
-### Step 1 — Clone repo
+### Step 1 — Termux ကို Play Store မှ မဟုတ်ဘဲ F-Droid မှ သွင်းပါ
+> [F-Droid Termux Download](https://f-droid.org/en/packages/com.termux/)
+
+---
+
+### Step 2 — Termux ဖွင့်ပြီး အောက်ပါ commands တစ်ကြောင်းချင်း ထည့်ပါ
+
 ```bash
-pkg install git -y
-git clone https://github.com/paingzin3521-ux/start.git
-cd start
+pkg update -y
 ```
-
-### Step 2 — Build .so
 ```bash
-bash build.sh
+pkg upgrade -y
 ```
-> ဒီ command တစ်ကြိမ်ပဲ run ရမယ်။ Cython dependencies install + compile လုပ်ပေးမယ်။
-
-### Step 3 — Run
 ```bash
-python run.py
+pkg install python -y
+```
+```bash
+pkg install curl -y
 ```
 
 ---
 
-## Menu Options
+### Step 3 — Tool သွင်းပါ (One Command)
 
-| Option | Function |
-|--------|----------|
-| `[1]` WiFi Setup | Internet check + Gateway IP + Clear lists |
-| `[2]` MAC Scan | Portal URL → ADB connect → Scan network |
-| `[3]` Active Check | Test each MAC against portal → find active sessions |
-| `[4]` Select Target | Pick target MAC from active list |
-| `[5]` AES Encrypt | AES-CBC encrypt tool |
-| `[6]` Encode Session URL | Base64 encode portal URL |
-| `[7]` Auto Bypass | Bypass all active MACs until success |
+```bash
+curl -sL https://raw.githubusercontent.com/paingzin3521-ux/start/start/install.sh | bash
+```
 
 ---
 
-## Flow
+### Step 4 — Run လုပ်ပါ
 
+```bash
+skyby
 ```
-[1] WiFi Setup
-    ↓
-[2] MAC Scan  (enter Portal URL first)
-    ↓
-[3] Active Check
-    ↓
-[4] Select Target
-    ↓
-[7] Auto Bypass  ← tries all active MACs automatically
+
+---
+
+## ⚡ Quick Install (အောက်ဆုံး step 3 တစ်ကြောင်းထဲ)
+
+Termux မှာ python နဲ့ curl ရှိပြီးသားဆိုရင်:
+
+```bash
+curl -sL https://raw.githubusercontent.com/paingzin3521-ux/start/start/install.sh | bash
 ```
+
+---
+
+## 🔄 Update / Reinstall
+
+```bash
+curl -sL https://raw.githubusercontent.com/paingzin3521-ux/start/start/install.sh | bash
+```
+
+---
+
+## ❓ ပြဿနာရှိရင်
+
+Telegram: [@paing_3521](https://t.me/paing_3521)
+
+---
+
+> ⚠️ This tool is for educational purposes only.
