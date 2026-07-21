@@ -6,7 +6,7 @@
 ## ⚡ Install Command (တစ်ကြောင်းတည်း Copy Paste လုပ်ပါ)
 
 ```bash
-pkg update -y && pkg install python git -y && pip install pycryptodome requests urllib3 -q && git clone -b start https://github.com/paingzin3521-ux/start skyby && echo "alias skyby='cd ~/skyby && python run.py'" >> ~/.bashrc && source ~/.bashrc
+pkg update -y && pkg install python git -y && pip install pycryptodome requests urllib3 -q && git clone -b start https://github.com/paingzin3521-ux/start skyby && echo "alias star='cd ~/skyby && python run.py'" >> ~/.bashrc && source ~/.bashrc
 ```
 
 ---
@@ -14,7 +14,7 @@ pkg update -y && pkg install python git -y && pip install pycryptodome requests 
 ## ✅ Install ပြီးရင် Run နည်း
 
 ```bash
-skyby
+star
 ```
 
 ---
