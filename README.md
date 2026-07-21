@@ -21,8 +21,10 @@ star
 
 ## 🔄 Update နည်း
 
-```bash
-cd ~/skyby && git pull
+```
+cd $HOME
+rm -rf skyby
+git clone -b start https://github.com/paingzin3521-ux/start skyby
 ```
 
 ---
