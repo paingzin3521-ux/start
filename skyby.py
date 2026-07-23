@@ -2,11 +2,18 @@ import os, re, sys, time, json, uuid, socket, hashlib, base64, string, random, s
 from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-CYAN, YELLOW, GREEN, RED, RESET, DG, CYAN_B = "\033[1;36m", "\033[1;33m", "\033[1;32m", "\033[1;31m", "\033[0m", "\033[0;32m", "\033[1;36m"
-DEV_FILE, KEY_FILE, SESSION_FILE = os.path.expanduser("~/.rj_devid"), os.path.expanduser("~/.rj_key"), os.path.expanduser("~/.rj_session")
-ADB_IP_FILE, ADB_GW_FILE, WIFI_SSID_FILE = os.path.expanduser("~/.rj_adb_ip"), os.path.expanduser("~/.rj_adb_gw"), os.path.expanduser("~/.rj_wifi_ssid")
+# Colors
+C = "\033[1;36m"
+Y = "\033[1;33m"
+G = "\033[1;32m"
+R = "\033[1;31m"
+W = "\033[1;37m"
+B = "\033[1;34m"
+P = "\033[1;35m"
+RESET = "\033[0m"
 
-SELECTED_MAC, SELECTED_NAME, PORTAL_URL, GATEWAY_IP = None, "Unknown", None, None
+DEV_FILE = os.path.expanduser("~/.rj_devid")
+SELECTED_MAC, SELECTED_NAME, PORTAL_URL = None, "Unknown", None
 
 def get_device_id():
     if os.path.exists(DEV_FILE): return open(DEV_FILE).read().strip()
@@ -15,66 +22,66 @@ def get_device_id():
 
 DEVICE_ID = get_device_id()
 
-def get_wifi_ssid():
+def get_wifi_info():
+    ssid, gw = None, None
     try:
         out = subprocess.check_output(["termux-wifi-connectioninfo"], stderr=subprocess.DEVNULL).decode()
-        return json.loads(out).get("ssid", "").strip('"')
-    except: return None
-
-def get_gateway_ip():
+        ssid = json.loads(out).get("ssid", "").strip('"')
+    except: pass
     try:
-        out = subprocess.check_output("ip route", shell=True).decode()
+        out = subprocess.check_output("ip route show default", shell=True, stderr=subprocess.DEVNULL).decode()
         m = re.search(r'default via ([\d.]+)', out)
-        return m.group(1) if m else None
-    except: return None
+        if m: gw = m.group(1)
+    except: pass
+    return ssid, gw
 
-def print_header(expiry):
+def banner(expiry):
     os.system("clear")
-    print(f"\n{GREEN}   _____   _  __ __     __   ____   __     __")
-    print(f"  / ____| | |/ / \ \   / /  |  _ \  \ \   / /")
-    print(f" | (___   | ' /   \ \_/ /   | |_) |  \ \_/ / ")
-    print(f"  \___ \  |  <     \   /    |  _ <    \   /  ")
-    print(f"  ____) | | . \     | |     | |_) |    | |   ")
-    print(f" |_____/  |_|\_\    |_|     |____/     |_|   {RESET}")
-    print(f"\n{YELLOW}         [ Wifi scan bypass ] - @paing_3521{RESET}")
-    print(f"{YELLOW}{'-'*60}{RESET}")
-    print(f"{DG}[*] Device ID : {CYAN}{DEVICE_ID}{RESET}")
-    print(f"{DG}[*] Expiry    : {GREEN}{expiry}{RESET}")
-    ssid, gw = get_wifi_ssid(), get_gateway_ip()
-    if ssid: print(f"{DG}[*] WiFi Name : {GREEN}{ssid}{RESET}")
-    if gw: print(f"{DG}[*] Router IP : {GREEN}{gw}{RESET}")
-    if SELECTED_MAC: print(f"{DG}[*] Target    : {YELLOW}{SELECTED_MAC} ({SELECTED_NAME}){RESET}")
-    if PORTAL_URL: print(f"{DG}[*] Portal    : {CYAN}{PORTAL_URL[:50]}...{RESET}")
-    print(f"{YELLOW}{'-'*60}{RESET}")
+    print(f"""{G}
+  ____   _  __ __     __  ____   __     __
+ / ___| | |/ / \ \   / / | __ )  \ \   / /
+ \___ \ | ' /   \ \_/ /  |  _ \   \ \_/ / 
+  ___) ||  <     \   /   | |_) |   \   /  
+ |____/ |_|\_\    |_|    |____/     |_|   
+
+         {Y}[ Wifi scan bypass ]
+         Telegram -> @paing_3521{RESET}""")
+    print(f"{Y}{'='*60}{RESET}")
+    print(f"{G}[*] Device ID : {C}{DEVICE_ID}{RESET}")
+    print(f"{G}[*] Expiry    : {G}{expiry}{RESET}")
+    ssid, gw = get_wifi_info()
+    if ssid: print(f"{G}[*] WiFi Name : {W}{ssid}{RESET}")
+    if gw: print(f"{G}[*] Router IP : {W}{gw}{RESET}")
+    if SELECTED_MAC: print(f"{G}[*] Target    : {Y}{SELECTED_MAC} ({SELECTED_NAME}){RESET}")
+    if PORTAL_URL: print(f"{G}[*] Portal    : {C}{PORTAL_URL[:45]}...{RESET}")
+    print(f"{Y}{'='*60}{RESET}")
 
 def option_get_portal_link():
     global PORTAL_URL
-    print(f"\n{YELLOW}[*] Detecting Portal URL...{RESET}")
+    print(f"\n{Y}[*] Detecting Portal URL...{RESET}")
     try:
         r = requests.get("http://connectivitycheck.gstatic.com/generate_204", timeout=5, allow_redirects=True)
-        if "wifidog" in r.url or "portal" in r.url:
+        if r.status_code != 204:
             PORTAL_URL = r.url
-            print(f"{GREEN}[ ✓ ] Found: {CYAN}{PORTAL_URL}{RESET}")
-        else: print(f"{RED}[-] Not found.{RESET}")
-    except: print(f"{RED}[-] Error detecting.{RESET}")
+            print(f"{G}[ ✓ ] Found: {C}{PORTAL_URL}{RESET}")
+        else: print(f"{R}[-] No Portal detected (Direct Internet).{RESET}")
+    except: print(f"{R}[-] Connection Error.{RESET}")
     time.sleep(2)
 
 def main():
     while True:
-        print_header("9999d")
-        print(f"  {GREEN}[1] WiFi Setup{RESET}")
-        print(f"  {YELLOW}[2] MAC Scan{RESET}")
-        print(f"  {GREEN}[3] Active Check{RESET}")
-        print(f"  {YELLOW}[4] Select Target{RESET}")
-        print(f"  {CYAN}[5] Get Portal Link{RESET}")
-        print(f"  {YELLOW}[6] Encode Session URL{RESET}")
-        print(f"  {GREEN}[7] Auto Bypass{RESET}")
-        print(f"  {RED}[0] Exit{RESET}")
-        print(f"{YELLOW}{'-'*60}{RESET}")
-        ch = input(f"  {CYAN}Select Option : {RESET}").strip()
+        banner("9999d 23h 59min")
+        print(f"  {G}[1] WiFi Setup          {Y}[2] MAC Scan{RESET}")
+        print(f"  {G}[3] Active Check        {Y}[4] Select Target{RESET}")
+        print(f"  {C}[5] Get Portal Link     {Y}[6] Encode Session URL{RESET}")
+        print(f"  {G}[7] Auto Bypass         {R}[8] Delete Key{RESET}")
+        print(f"  {R}[0] Exit{RESET}")
+        print(f"{Y}{'='*60}{RESET}")
+        ch = input(f"  {C}Select Option : {RESET}").strip()
         if ch == "1": 
-            print(f"\n{GREEN}[*] WiFi Setup Complete.{RESET}"); time.sleep(1)
+            print(f"\n{G}[*] WiFi Setup Complete.{RESET}"); time.sleep(1)
         elif ch == "5": option_get_portal_link()
         elif ch == "0": break
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
