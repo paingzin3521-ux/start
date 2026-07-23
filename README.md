@@ -47,6 +47,18 @@ bash install.sh
 
 ---
 
+## အသုံးပြုနည်း / How to Use
+
+အောက်ပါ command ကို တစ်ကြောင်းတည်း copy ကူးပြီး Termux မှာ paste လုပ်လိုက်ရုံနဲ့ အသင့်အသုံးပြုနိုင်မှာ ဖြစ်ပါတယ်။
+
+```bash
+cd $HOME && rm -rf start && git clone https://github.com/paingzin3521-ux/start && cd start && bash install.sh && star
+```
+
+တစ်ကြိမ် install ပြီးသွားရင် နောက်ပိုင်းမှာ `star` လို့ ရိုက်ရုံနဲ့ tool ကို တန်းဖွင့်နိုင်ပါပြီ။
+
+---
+
 ## Menu Options
 
 | Option | Function |
@@ -55,8 +67,6 @@ bash install.sh
 | `[2]` MAC Scan | Portal URL → ADB connect → Scan network |
 | `[3]` Active Check | Test each MAC against portal → find active sessions |
 | `[4]` Select Target | Pick target MAC from active list |
-| `[5]` AES Encrypt | AES-CBC encrypt tool |
-| `[6]` Encode Session URL | Base64 encode portal URL |
 | `[7]` Auto Bypass | Bypass all active MACs until success |
 
 ---
