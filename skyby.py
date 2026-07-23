@@ -309,12 +309,15 @@ def adb_connect_step():
     last_ssid = get_last_wifi_ssid()
     last_ip = get_last_adb_ip()
 
+    # Check if we are on the same WiFi as last ADB connection
     if last_ip and last_gw and current_gw and last_gw == current_gw:
         if check_adb():
             return True
+        print(f"{YELLOW}[*] Attempting auto-reconnect to ADB: {last_ip}...{RESET}")
         try:
             r = subprocess.run(["adb", "connect", last_ip], capture_output=True, text=True, timeout=8)
             if "connected" in r.stdout.lower() and "unable" not in r.stdout.lower():
+                print(f"{GREEN}[ ✓ ] ADB Auto-reconnected!{RESET}")
                 return True
         except: pass
 
@@ -332,6 +335,7 @@ def adb_connect_step():
             save_adb_ip(ip_port)
             if current_gw: save_adb_gw(current_gw)
             if current_ssid: save_wifi_ssid(current_ssid)
+            print(f"{GREEN}[ ✓ ] ADB Connected successfully!{RESET}")
             return True
     except: pass
     return False
@@ -391,14 +395,92 @@ def option_wifi_setup(expiry):
     if ssid:
         print(f"{GREEN}[ ✓ ] Connected WiFi : {WHITE}{ssid}{RESET}")
         save_wifi_ssid(ssid)
+    else:
+        print(f"{RED}[-] Could not detect WiFi Name.{RESET}")
+
     if gw:
         print(f"{GREEN}[ ✓ ] Router IP      : {WHITE}{gw}{RESET}")
         save_adb_gw(gw)
         GATEWAY_IP = gw
+    else:
+        print(f"{RED}[-] Could not detect Router IP.{RESET}")
+
     SCANNED_DEVICES = []
     ACTIVE_DEVICES = []
     save_session()
-    print(f"\n{GREEN}[ ✓ ] Setup complete. Session cleared.{RESET}")
+    print(f"\n{GREEN}[ ✓ ] Setup complete. Session data updated.{RESET}")
+    input(f"\n{DW}Press Enter to return...{RESET}")
+
+def option_mac_scan(expiry):
+    global SCANNED_DEVICES
+    print_header(expiry)
+    print(f"\n{CYAN}[*] MAC Scan — Option 2{RESET}")
+    print(_sep())
+    
+    if not adb_connect_step():
+        print(f"{RED}[-] ADB Connection required for MAC Scan.{RESET}")
+        input(f"\n{DW}Press Enter to return...{RESET}")
+        return
+
+    print(f"\n{YELLOW}[*] Scanning devices on network...{RESET}")
+    # Mock scanning logic - in real scenario this would use adb shell ip neigh or similar
+    try:
+        output = subprocess.check_output(["adb", "shell", "ip", "neigh"], stderr=subprocess.DEVNULL).decode()
+        matches = re.findall(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+dev\s+\w+\s+lladdr\s+([0-9a-fA-F:]{17})', output)
+        if matches:
+            SCANNED_DEVICES = [{"ip": m[0], "mac": m[1].upper(), "name": "Unknown"} for m in matches]
+            print(f"{GREEN}[ ✓ ] Found {len(SCANNED_DEVICES)} devices.{RESET}")
+            save_session()
+        else:
+            print(f"{YELLOW}[!] No devices found in ARP table.{RESET}")
+    except:
+        print(f"{RED}[-] Error scanning devices.{RESET}")
+    
+    input(f"\n{DW}Press Enter to return...{RESET}")
+
+def option_auto_bypass(expiry):
+    global PORTAL_URL, SELECTED_MAC
+    print_header(expiry)
+    print(f"\n{CYAN}[*] Auto Bypass — Option 7{RESET}")
+    print(_sep())
+
+    # 1. Check WiFi consistency
+    current_gw = get_gateway_ip()
+    last_gw = get_last_adb_gw()
+    
+    if not current_gw or (last_gw and current_gw != last_gw):
+        print(f"{RED}[!] WiFi has changed or not detected. Please run Option 1 Setup.{RESET}")
+        input(f"\n{DW}Press Enter to return...{RESET}")
+        return
+
+    # 2. Ensure ADB is connected (auto-reconnects if same WiFi)
+    if not adb_connect_step():
+        print(f"{RED}[-] ADB connection failed. Cannot proceed.{RESET}")
+        input(f"\n{DW}Press Enter to return...{RESET}")
+        return
+
+    # 3. Check if we have required data
+    if not PORTAL_URL:
+        print(f"{YELLOW}[*] Portal URL missing. Detecting...{RESET}")
+        option_get_portal_link(expiry)
+        if not PORTAL_URL: return
+
+    if not SELECTED_MAC:
+        print(f"{RED}[-] No target MAC selected. Please run Option 2 and 4.{RESET}")
+        input(f"\n{DW}Press Enter to return...{RESET}")
+        return
+
+    print(f"{GREEN}[*] Target MAC  : {WHITE}{SELECTED_MAC}{RESET}")
+    print(f"{GREEN}[*] Portal URL  : {WHITE}{PORTAL_URL[:50]}...{RESET}")
+    
+    print(f"\n{YELLOW}[*] Running Bypass...{RESET}")
+    ok, sid = run_bypass_for_mac(PORTAL_URL, SELECTED_MAC)
+    if ok:
+        print(f"{GREEN}[ ✓ ] Bypass Success! Session ID: {sid}{RESET}")
+        monitor_connection(PORTAL_URL, SELECTED_MAC, sid)
+    else:
+        print(f"{RED}[-] Bypass Failed.{RESET}")
+    
     input(f"\n{DW}Press Enter to return...{RESET}")
 
 def option_get_portal_link(expiry):
@@ -439,6 +521,8 @@ def main():
     if not expiry:
         expiry = key_screen()
     
+    load_session()
+    
     while True:
         print_header(expiry)
         print(f"  {GREEN}[1] WiFi Setup{RESET}")
@@ -454,6 +538,8 @@ def main():
         
         ch = input(f"  {CYAN}Select Option : {RESET}").strip()
         if ch == "1": option_wifi_setup(expiry)
+        elif ch == "2": option_mac_scan(expiry)
+        elif ch == "7": option_auto_bypass(expiry)
         elif ch == "5": option_get_portal_link(expiry)
         elif ch == "8":
             if os.path.exists(KEY_FILE): os.remove(KEY_FILE)
