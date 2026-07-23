@@ -65,6 +65,7 @@ DEV_FILE       = os.path.expanduser("~/.rj_devid")
 KEY_FILE       = os.path.expanduser("~/.rj_key")
 ADB_IP_FILE    = os.path.expanduser("~/.rj_adb_ip")
 ADB_GW_FILE    = os.path.expanduser("~/.rj_adb_gw")
+SESSION_FILE   = os.path.expanduser("~/.rj_session")
 
 SELECTED_MAC   = None
 SELECTED_NAME  = "Unknown"
@@ -89,6 +90,48 @@ def get_device_id():
     return dev_id
 
 DEVICE_ID = get_device_id()
+
+# ==================== SESSION SAVE / LOAD ====================
+def save_session():
+    try:
+        data = {
+            "portal_url":     PORTAL_URL,
+            "selected_mac":   SELECTED_MAC,
+            "selected_name":  SELECTED_NAME,
+            "gateway_ip":     GATEWAY_IP,
+            "active_devices": ACTIVE_DEVICES,
+            "scanned_devices": SCANNED_DEVICES,
+        }
+        with open(SESSION_FILE, "w") as f:
+            json.dump(data, f)
+    except:
+        pass
+
+def load_session():
+    global PORTAL_URL, SELECTED_MAC, SELECTED_NAME, GATEWAY_IP, ACTIVE_DEVICES, SCANNED_DEVICES
+    if not os.path.exists(SESSION_FILE):
+        return False
+    try:
+        with open(SESSION_FILE) as f:
+            data = json.load(f)
+        PORTAL_URL      = data.get("portal_url")
+        SELECTED_MAC    = data.get("selected_mac")
+        SELECTED_NAME   = data.get("selected_name", "Unknown")
+        GATEWAY_IP      = data.get("gateway_ip")
+        ACTIVE_DEVICES  = data.get("active_devices", [])
+        SCANNED_DEVICES = data.get("scanned_devices", [])
+        if PORTAL_URL and SELECTED_MAC:
+            return True
+    except:
+        pass
+    return False
+
+def clear_session():
+    try:
+        if os.path.exists(SESSION_FILE):
+            os.remove(SESSION_FILE)
+    except:
+        pass
 
 # ==================== KEY / LICENSE ====================
 def load_expiry():
@@ -879,6 +922,7 @@ def option_auto_bypass(expiry):
 
     if success:
         _show_bypass_success(winning_mac, winning_sid)
+        save_session()
         monitor_connection(PORTAL_URL, winning_mac, winning_sid)
     else:
         print(f"\n{RED}╔══════════════════════════════════════╗{RESET}")
@@ -897,7 +941,9 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except:
         pass
-    expiry = load_expiry() or (time.time() + 10 * 365 * 24 * 3600)
+    expiry = load_expiry() or key_screen()
+    # Auto-restore previous session silently (no prompt)
+    load_session()
     while True:
         print_menu(expiry)
         ch = input(f"{DW}  Select Option: {RESET}").strip()
