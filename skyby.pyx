@@ -1027,7 +1027,7 @@ def monitor_connection(portal_url, mac, sid):
                     reconnected = True
                     break
             if not reconnected:
-                time.sleep(3)
+                time.sleep(1)
 
         time.sleep(1)
 
