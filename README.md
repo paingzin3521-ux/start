@@ -51,7 +51,7 @@ bash install.sh
 
 | Option | Function |
 |--------|----------|
-| `[1]` WiFi Setup | Internet check + Gateway IP + Clear lists |
+| `[1]` WiFi Setup | Display Router IP & WiFi Name + Clear lists + Save WiFi info for ADB persistence |
 | `[2]` MAC Scan | Portal URL → ADB connect → Scan network |
 | `[3]` Active Check | Test each MAC against portal → find active sessions |
 | `[4]` Select Target | Pick target MAC from active list |
@@ -64,13 +64,13 @@ bash install.sh
 ## Flow
 
 ```
-[1] WiFi Setup
+[1] WiFi Setup (Displays Router IP & WiFi Name, saves WiFi info)
     ↓
-[2] MAC Scan  (enter Portal URL first)
+[2] MAC Scan (enter Portal URL, ADB auto-connects if WiFi is same)
     ↓
 [3] Active Check
     ↓
 [4] Select Target
     ↓
-[7] Auto Bypass  ← tries all active MACs automatically
+[7] Auto Bypass (uses saved ADB connection if WiFi is same)
 ```

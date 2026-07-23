@@ -65,6 +65,7 @@ DEV_FILE       = os.path.expanduser("~/.rj_devid")
 KEY_FILE       = os.path.expanduser("~/.rj_key")
 ADB_IP_FILE    = os.path.expanduser("~/.rj_adb_ip")
 ADB_GW_FILE    = os.path.expanduser("~/.rj_adb_gw")
+WIFI_SSID_FILE = os.path.expanduser("~/.rj_wifi_ssid")
 SESSION_FILE   = os.path.expanduser("~/.rj_session")
 
 SELECTED_MAC   = None
@@ -316,6 +317,15 @@ def save_adb_gw(gw):
     with open(ADB_GW_FILE, "w") as f:
         f.write(gw.strip())
 
+def get_last_wifi_ssid():
+    if os.path.exists(WIFI_SSID_FILE):
+        return open(WIFI_SSID_FILE).read().strip()
+    return None
+
+def save_wifi_ssid(ssid):
+    with open(WIFI_SSID_FILE, "w") as f:
+        f.write(ssid.strip())
+
 def get_wifi_ssid():
     # Method 1: termux-wifi-connectioninfo
     try:
@@ -455,6 +465,7 @@ def option_wifi_setup(expiry):
     ssid = get_wifi_ssid()
     if ssid:
         print(f"{GREEN}[ ✓ ] WiFi Name  : {CYAN}{ssid}{RESET}")
+        save_wifi_ssid(ssid)
     else:
         print(f"{YELLOW}[!] WiFi Name   : Unknown (install termux-api for SSID){RESET}")
 
@@ -470,14 +481,21 @@ def option_wifi_setup(expiry):
 
 # ==================== OPTION 2: MAC SCAN ====================
 def adb_connect_step():
-    current_gw = get_gateway_ip()
-    last_gw    = get_last_adb_gw()
-    last_ip    = get_last_adb_ip()
-    same_wifi  = bool(last_gw and current_gw and last_gw == current_gw)
+    current_gw   = get_gateway_ip()
+    last_gw      = get_last_adb_gw()
+    last_ip      = get_last_adb_ip()
+    current_ssid = get_wifi_ssid()
+    last_ssid    = get_last_wifi_ssid()
+
+    same_wifi = bool(last_gw and current_gw and last_gw == current_gw and \
+                     last_ssid and current_ssid and last_ssid == current_ssid)
 
     # WiFi မပြောင်းဘူး + saved IP ရှိရင် → auto-reconnect၊ မမေးဘူး
-    if last_ip and same_wifi:
-        print(f"{CYAN}[*] Same WiFi — auto ADB reconnect to {last_ip}...{RESET}")
+    if last_ip and same_wifi and check_adb():
+        print(f"{GREEN}[ ✓ ] ADB already connected and WiFi is same. No need to reconnect.{RESET}")
+        return True
+    elif last_ip and same_wifi:
+        print(f"{CYAN}[*] Same WiFi ({current_ssid}) — auto ADB reconnect to {last_ip}...{RESET}")
         try:
             r = subprocess.run(["adb", "connect", last_ip],
                                capture_output=True, text=True, timeout=8)
@@ -487,14 +505,18 @@ def adb_connect_step():
         except:
             pass
 
+    # If ADB is already connected, and we are in the same WiFi, we are good
     if check_adb():
-        print(f"{GREEN}[ ✓ ] ADB already connected{RESET}")
         if current_gw:
             save_adb_gw(current_gw)
+        if current_ssid:
+            save_wifi_ssid(current_ssid)
+        print(f"{GREEN}[ ✓ ] ADB already connected{RESET}")
         return True
 
-    if last_gw and current_gw and last_gw != current_gw:
-        print(f"{YELLOW}[!] WiFi changed ({last_gw} → {current_gw}). Please reconnect ADB.{RESET}")
+    if (last_gw and current_gw and last_gw != current_gw) or \
+       (last_ssid and current_ssid and last_ssid != current_ssid):
+        print(f"{YELLOW}[!] WiFi changed ({last_ssid} -> {current_ssid}). Please reconnect ADB.{RESET}")
     else:
         print(f"{YELLOW}[*] ADB not connected. Enter IP:PORT to connect.{RESET}")
 
@@ -509,6 +531,8 @@ def adb_connect_step():
             save_adb_ip(ip_port)
             if current_gw:
                 save_adb_gw(current_gw)
+            if current_ssid:
+                save_wifi_ssid(current_ssid)
             print(f"{GREEN}[ ✓ ] ADB connected to {ip_port}{RESET}")
             return True
         else:
