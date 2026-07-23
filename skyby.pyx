@@ -848,40 +848,103 @@ def run_bypass_for_mac(portal_url, mac, cached_sid=None, verbose=False):
     return False, None
 
 def monitor_connection(portal_url, mac, sid):
-    fail_count = 0
-    print(f"\n{CYAN}[*] Monitoring Connection (Live Update)...{RESET}")
+    import threading
+
+    fail_count    = 0
+    reconnect_count = 0
+    start_time    = time.time()
+    current_mac   = mac
+    current_sid   = sid
+    lock          = threading.Lock()
+    stop_event    = threading.Event()
+
+    # ── Keep-Alive Thread ────────────────────────────────────────────
+    # Sends a lightweight request to the portal every 25s to keep
+    # the session from expiring on the server side.
+    def keepalive_thread():
+        while not stop_event.is_set():
+            try:
+                ka_url = portal_url.replace("/auth/wifidogAuth/login",
+                                            "/api/auth/wifidog?stage=portal&")
+                ka_url = replace_mac(ka_url, current_mac)
+                sess = requests.Session()
+                sess.headers.update({"User-Agent": "Dalvik/2.1.0"})
+                sess.get(ka_url, timeout=8, verify=False, allow_redirects=True)
+            except:
+                pass
+            stop_event.wait(25)
+
+    ka_thread = threading.Thread(target=keepalive_thread, daemon=True)
+    ka_thread.start()
+
+    print(f"\n{CYAN}[*] Keep-Alive Monitor started — Ctrl+C to stop{RESET}")
+    print(f"{DG}    Auto-reconnect ON | Keep-alive every 25s{RESET}\n")
+
+    # ── Main Monitor Loop ────────────────────────────────────────────
     while True:
         try:
-            param = '-n' if os.name == 'nt' else '-c'
+            param  = '-n' if os.name == 'nt' else '-c'
             output = subprocess.check_output(
                 ['ping', param, '1', '-W', '1', '8.8.8.8'],
                 stderr=subprocess.DEVNULL, universal_newlines=True
             )
             m = re.search(r"time[=<](\d+\.?\d*)", output)
             if m:
-                ping = float(m.group(1))
-                now  = datetime.now().strftime("%H:%M:%S")
-                color = GREEN if ping < 100 else (YELLOW if ping < 300 else RED)
-                sys.stdout.write(f"\r{DW}[{now}] Ping: {color}{ping}ms{RESET} | Status: {GREEN}ONLINE{RESET}    ")
+                ping      = float(m.group(1))
+                now       = datetime.now().strftime("%H:%M:%S")
+                uptime    = int(time.time() - start_time)
+                h, rem    = divmod(uptime, 3600)
+                mi, s     = divmod(rem, 60)
+                up_str    = f"{h:02d}:{mi:02d}:{s:02d}"
+                color     = GREEN if ping < 100 else (YELLOW if ping < 300 else RED)
+                sys.stdout.write(
+                    f"\r{DW}[{now}] {color}{ping:>5.0f}ms{RESET} "
+                    f"| {GREEN}ONLINE{RESET} "
+                    f"| Up:{CYAN}{up_str}{RESET} "
+                    f"| Reconnects:{YELLOW}{reconnect_count}{RESET}   "
+                )
                 sys.stdout.flush()
                 fail_count = 0
             else:
                 raise Exception()
+
         except KeyboardInterrupt:
-            print(f"\n{YELLOW}[!] Monitoring stopped by user.{RESET}")
+            stop_event.set()
+            print(f"\n\n{YELLOW}[!] Monitor stopped. Total reconnects: {reconnect_count}{RESET}")
             break
+
         except:
             now = datetime.now().strftime("%H:%M:%S")
-            sys.stdout.write(f"\r{DW}[{now}] Ping: {RED}OFFLINE{RESET} | Status: {RED}RECONNECTING...{RESET}   ")
+            sys.stdout.write(
+                f"\r{DW}[{now}] {RED}OFFLINE{RESET} "
+                f"| Status: {RED}DROPPED ({fail_count+1})...{RESET}        "
+            )
             sys.stdout.flush()
             fail_count += 1
 
-        if fail_count >= 2:
-            ok, new_sid = run_bypass_for_mac(portal_url, mac, cached_sid=None, verbose=False)
-            if ok:
-                sid, fail_count = new_sid, 0
-                print(f"\n{DG}[*] Re-Bypass OK → Session: {CYAN}{sid}{RESET}")
-            else:
+        # ── Auto-reconnect ───────────────────────────────────────────
+        if fail_count >= 1:
+            # Try current MAC first, then fall back to all ACTIVE_DEVICES
+            try_macs = [current_mac] + [
+                d['mac'] for d in ACTIVE_DEVICES
+                if d.get('mac') and d['mac'] != current_mac
+            ]
+            reconnected = False
+            for try_mac in try_macs:
+                ok, new_sid = run_bypass_for_mac(
+                    portal_url, try_mac, cached_sid=None, verbose=False
+                )
+                if ok:
+                    with lock:
+                        current_mac = try_mac
+                        current_sid = new_sid
+                        fail_count  = 0
+                        reconnect_count += 1
+                    print(f"\n{GREEN}[ ✓ ] Reconnected via {current_mac} "
+                          f"(#{reconnect_count}){RESET}")
+                    reconnected = True
+                    break
+            if not reconnected:
                 time.sleep(3)
 
         time.sleep(1)
