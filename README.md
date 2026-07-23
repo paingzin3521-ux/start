@@ -13,24 +13,36 @@
 
 ---
 
-## Termux Setup
+## ติดตั้ง / Install
 
-### Step 1 — Clone repo
 ```bash
-pkg install git -y
-git clone https://github.com/paingzin3521-ux/start.git
+cd $HOME
+rm -rf start
+git clone https://github.com/paingzin3521-ux/start
 cd start
-```
-
-### Step 2 — Build .so
-```bash
 bash build.sh
+bash install.sh
 ```
-> ဒီ command တစ်ကြိမ်ပဲ run ရမယ်။ Cython dependencies install + compile လုပ်ပေးမယ်။
 
-### Step 3 — Run
+---
+
+## အသုံးပြုနည်း / Run
+
 ```bash
-python run.py
+star
+```
+
+---
+
+## Update
+
+```bash
+cd $HOME
+rm -rf start
+git clone https://github.com/paingzin3521-ux/start
+cd start
+bash build.sh
+bash install.sh
 ```
 
 ---
