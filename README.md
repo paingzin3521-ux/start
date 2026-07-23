@@ -2,7 +2,7 @@
 
 ## Installation
 ```bash
-cd $HOME && rm -rf skyby && git clone https://github.com/paingzin3521-ux/start skyby && cd skyby && bash install.sh && skyby
+cd $HOME && rm -rf skyby && git clone -b start https://github.com/paingzin3521-ux/start skyby && cd skyby && bash install.sh && star
 ```
 
 ## Features
